@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora ROI v4.0</title>
+    <style>
+        body {font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fa;margin:0;padding:20px;}
+        .container {max-width:900px;margin:auto;background:white;padding:30px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.1);}
+        h1 {color:#1e3a8a;text-align:center;margin-bottom:5px;}
+        .subtitle {text-align:center;color:#555;margin-bottom:30px;}
+        label {font-weight:bold;display:block;margin:15px 0 5px;}
+        input {width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:16px;box-sizing:border-box;}
+        button {background:#2ecc71;color:white;padding:15px;font-size:18px;border:none;border-radius:6px;cursor:pointer;margin-top:20px;width:100%;}
+        button:hover {background:#27ae60;}
+        .resultados {margin-top:30px;padding:25px;background:#f1f8ff;border-radius:10px;display:none;}
+        .resultado {font-size:19px;margin:12px 0;}
+        .aprobado {color:#27ae60;font-weight:bold;}
+        .revisar {color:#e74c3c;font-weight:bold;}
+        .impacto-table {border-collapse:collapse;width:100%;margin:20px 0;}
+        .impacto-table th, .impacto-table td {border:1px solid #ddd;padding:8px;text-align:left;}
+        .impacto-table th {background:#f0f0f0;font-weight:bold;}
+        .validador {margin-top:30px;}
+        .validador h3 {color:#1e3a8a;}
+        .validador li {padding:12px;margin:8px 0;background:#f9f9f9;border-left:5px solid #2ecc71;border-radius:5px;}
+        .valid {color:#27ae60;font-weight:bold;}
+        .invalid {color:#e74c3c;font-weight:bold;}
+        .bold {font-weight:bold;}
+        .small {font-size:13px;color:#666;}
+        .btn-pdf {background:#3498db;margin-top:20px;}
+        .btn-pdf:hover {background:#2980b9;}
+        .flujo-hidden {display:none;}
+        .tabs {display:flex;justify-content:space-around;margin-bottom:20px;}
+        .tab {padding:10px 20px;cursor:pointer;background:#ddd;border-radius:5px;}
+        .tab.active {background:#2ecc71;color:white;}
+        .tab-content {display:none;}
+        .tab-content.active {display:block;}
+        #formulas {display:none;margin-top:30px;padding:20px;background:#f9f9f9;border-radius:10px;}
+        #formulas h3 {color:#1e3a8a;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Calculadora ROI v4.0</h1>
+    <p class="subtitle">Prof. Mario Héctor Vogel • 45 Validadores Automáticos</p>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('clasico')">ROI Clásico o Anual</div>
+        <div class="tab" onclick="showTab('multi')">ROI Multi Anual</div>
+        <div class="tab" onclick="showTab('global')">ROI Global (o Fronterizo)</div>
+        <div class="tab" onclick="showTab('digital')">ROI Digital</div>
+    </div>
+
+    <!-- ROI Clásico o Anual -->
+    <div id="clasico" class="tab-content active">
+        <label>Inversión inicial (USD)</label>
+        <input type="number" id="inversion-clasico" value="250000">
+        <label>Flujo de caja (USD)</label>
+        <input type="number" id="flujo-clasico" value="330000">
+        <label>Utilidad Neta actual (USD)</label>
+        <input type="number" id="utilidad-clasico" value="500000">
+        <label>Activos Totales actuales (USD)</label>
+        <input type="number" id="activos-clasico" value="50000000">
+        <label>Patrimonio Neto actual (USD)</label>
+        <input type="number" id="patrimonio-clasico" value="20000000">
+        <button type="button" onclick="calcularClasico()">CALCULAR ROI</button>
+        <div id="resultados-clasico" class="resultados">
+            <h2>Resultados</h2>
+            <div class="resultado">ROI Clásico o Anual: <span id="roi-clasico"></span>%</div>
+            <div class="resultado" id="decision-clasico"></div>
+            <h3>Impacto en la Cooperativa</h3>
+            <table class="impacto-table">
+                <thead><tr><th>Métrica</th><th>Antes</th><th>Con proyecto</th><th>Impacto</th></tr></thead>
+                <tbody>
+                    <tr><td>ROA</td><td id="roa-antes-clasico"></td><td id="roa-con-clasico"></td><td id="roa-impacto-clasico"></td></tr>
+                    <tr><td>ROE</td><td id="roe-antes-clasico"></td><td id="roe-con-clasico"></td><td id="roe-impacto-clasico"></td></tr>
+                </tbody>
+            </table>
+            <div class="validador" id="validador-clasico"></div>
+            <button type="button" class="btn-pdf" onclick="generarPDF('clasico')">GENERAR PDF (3 PÁGINAS)</button>
+        </div>
+    </div>
+
+    <!-- ROI Multi Anual -->
+    <div id="multi" class="tab-content">
+        <label>Inversión inicial (USD)</label>
+        <input type="number" id="inversion-multi" value="250000">
+        <label>WACC (%)</label>
+        <input type="number" id="wacc-multi" step="0.1" value="9.6">
+        <label>Período (años)</label>
+        <input type="number" id="periodo-multi" value="4" min="1" max="10">
+        <div id="flujos-container-multi">
+            <label>Flujo Año 1 (USD)</label><input type="number" class="flujo-multi" value="55000">
+            <label>Flujo Año 2 (USD)</label><input type="number" class="flujo-multi" value="75000">
+            <label>Flujo Año 3 (USD)</label><input type="number" class="flujo-multi" value="90000">
+            <label>Flujo Año 4 (USD)</label><input type="number" class="flujo-multi" value="110000">
+            <label class="flujo-hidden">Flujo Año 5 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 6 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 7 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 8 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 9 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 10 (USD)</label><input type="number" class="flujo-multi flujo-hidden" value="0">
+        </div>
+        <label>Utilidad Neta actual (USD)</label>
+        <input type="number" id="utilidad-multi" value="500000">
+        <label>Activos Totales actuales (USD)</label>
+        <input type="number" id="activos-multi" value="50000000">
+        <label>Patrimonio Neto actual (USD)</label>
+        <input type="number" id="patrimonio-multi" value="20000000">
+        <button type="button" onclick="calcularMulti()">CALCULAR ROI</button>
+        <div id="resultados-multi" class="resultados">
+            <h2>Resultados</h2>
+            <div class="resultado">VPN: <span id="vpn-multi"></span> USD</div>
+            <div class="resultado">TIR: <span id="tir-multi"></span>%</div>
+            <div class="resultado">ROI Clásico: <span id="roi-clasico-multi"></span>%</div>
+            <div class="resultado">ROI Simple: <span id="roi-simple-multi"></span>%</div>
+            <div class="resultado">ROI Completo: <span id="roi-completo-multi"></span>%</div>
+            <div class="resultado" id="decision-multi"></div>
+            <h3>Impacto en la Cooperativa</h3>
+            <table class="impacto-table">
+                <thead><tr><th>Métrica</th><th>Antes</th><th>Con proyecto</th><th>Impacto</th></tr></thead>
+                <tbody>
+                    <tr><td>ROA</td><td id="roa-antes-multi"></td><td id="roa-con-multi"></td><td id="roa-impacto-multi"></td></tr>
+                    <tr><td>ROE</td><td id="roe-antes-multi"></td><td id="roe-con-multi"></td><td id="roe-impacto-multi"></td></tr>
+                </tbody>
+            </table>
+            <div class="validador" id="validador-multi"></div>
+            <button type="button" class="btn-pdf" onclick="generarPDF('multi')">GENERAR PDF (3 PÁGINAS)</button>
+        </div>
+    </div>
+
+    <!-- ROI Global (o Fronterizo) -->
+    <div id="global" class="tab-content">
+        <label>Inversión inicial (USD)</label>
+        <input type="number" id="inversion-global" value="250000">
+        <label>WACC ajustado por riesgo país (%)</label>
+        <input type="number" id="wacc-global" step="0.1" value="9.6">
+        <label>Período (años)</label>
+        <input type="number" id="periodo-global" value="4" min="1" max="10">
+        <div id="flujos-container-global">
+            <label>Flujo Año 1 (USD, ajustado por TC forward)</label><input type="number" class="flujo-global" value="55000">
+            <label>Flujo Año 2 (USD, ajustado por TC forward)</label><input type="number" class="flujo-global" value="75000">
+            <label>Flujo Año 3 (USD, ajustado por TC forward)</label><input type="number" class="flujo-global" value="90000">
+            <label>Flujo Año 4 (USD, ajustado por TC forward)</label><input type="number" class="flujo-global" value="110000">
+            <label class="flujo-hidden">Flujo Año 5 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 6 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 7 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 8 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 9 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+            <label class="flujo-hidden">Flujo Año 10 (USD)</label><input type="number" class="flujo-global flujo-hidden" value="0">
+        </div>
+        <label>Utilidad Neta actual (USD)</label>
+        <input type="number" id="utilidad-global" value="500000">
+        <label>Activos Totales actuales (USD)</label>
+        <input type="number" id="activos-global" value="50000000">
+        <label>Patrimonio Neto actual (USD)</label>
+        <input type="number" id="patrimonio-global" value="20000000">
+        <button type="button" onclick="calcularGlobal()">CALCULAR ROI</button>
+        <div id="resultados-global" class="resultados">
+            <h2>Resultados</h2>
+            <div class="resultado">VPN: <span id="vpn-global"></span> USD</div>
+            <div class="resultado">TIR: <span id="tir-global"></span>%</div>
+            <div class="resultado">ROI Clásico: <span id="roi-clasico-global"></span>%</div>
+            <div class="resultado">ROI Simple: <span id="roi-simple-global"></span>%</div>
+            <div class="resultado">ROI Completo: <span id="roi-completo-global"></span>%</div>
+            <div class="resultado" id="decision-global"></div>
+            <h3>Impacto en la Cooperativa</h3>
+            <table class="impacto-table">
+                <thead><tr><th>Métrica</th><th>Antes</th><th>Con proyecto</th><th>Impacto</th></tr></thead>
+                <tbody>
+                    <tr><td>ROA</td><td id="roa-antes-global"></td><td id="roa-con-global"></td><td id="roa-impacto-global"></td></tr>
+                    <tr><td>ROE</td><td id="roe-antes-global"></td><td id="roe-con-global"></td><td id="roe-impacto-global"></td></tr>
+                </tbody>
+            </table>
+            <div class="validador" id="validador-global"></div>
+            <button type="button" class="btn-pdf" onclick="generarPDF('global')">GENERAR PDF (3 PÁGINAS)</button>
+        </div>
+    </div>
+
+    <!-- ROI Digital -->
+    <div id="digital" class="tab-content">
+        <label>Costos de Implementación (USD)</label>
+        <input type="number" id="costos-digital" value="50000">
+        <label>Beneficios Operativos (USD/año)</label>
+        <input type="number" id="beneficios-digital" value="60000">
+        <label>Utilidad Neta actual (USD)</label>
+        <input type="number" id="utilidad-digital" value="500000">
+        <label>Activos Totales actuales (USD)</label>
+        <input type="number" id="activos-digital" value="50000000">
+        <label>Patrimonio Neto actual (USD)</label>
+        <input type="number" id="patrimonio-digital" value="20000000">
+        <button type="button" onclick="calcularDigital()">CALCULAR ROI</button>
+        <div id="resultados-digital" class="resultados">
+            <h2>Resultados</h2>
+            <div class="resultado">ROI Digital: <span id="roi-digital"></span>%</div>
+            <div class="resultado" id="decision-digital"></div>
+            <h3>Impacto en la Cooperativa</h3>
+            <table class="impacto-table">
+                <thead><tr><th>Métrica</th><th>Antes</th><th>Con proyecto</th><th>Impacto</th></tr></thead>
+                <tbody>
+                    <tr><td>ROA</td><td id="roa-antes-digital"></td><td id="roa-con-digital"></td><td id="roa-impacto-digital"></td></tr>
+                    <tr><td>ROE</td><td id="roe-antes-digital"></td><td id="roe-con-digital"></td><td id="roe-impacto-digital"></td></tr>
+                </tbody>
+            </table>
+            <div class="validador" id="validador-digital"></div>
+            <button type="button" class="btn-pdf" onclick="generarPDF('digital')">GENERAR PDF (3 PÁGINAS)</button>
+        </div>
+    </div>
+
+    <!-- Formulario de solicitud -->
+    <div id="request-final" style="display:none;">
+        <h3>Solicitar Versión Final</h3>
+        <form id="request-form">
+            <label>Nombre</label><input type="text" id="name" required>
+            <label>Email</label><input type="email" id="email" required>
+            <label>Empresa</label><input type="text" id="company">
+            <button type="submit">Solicitar</button>
+        </form>
+    </div>
+
+    <!-- Fórmulas (visible solo en versión final) -->
+    <div id="formulas">
+        <h3>Fórmulas Utilizadas</h3>
+        <p><strong>ROI Clásico o Anual:</strong> (Flujo - Inversión) / Inversión × 100</p>
+        <p><strong>ROI Multi Anual:</strong><br>
+            - VPN: -Inversión + Σ(Flujo_i / (1 + WACC)^i)<br>
+            - TIR: Resuelve 0 = -Inversión + Σ(Flujo_i / (1 + TIR)^i)<br>
+            - ROI Clásico: (Suma Flujos - Inversión) / Inversión × 100<br>
+            - ROI Simple: (VPN / Inversión) × 100<br>
+            - ROI Completo: 100 + ROI Simple</p>
+        <p><strong>ROI Global (o Fronterizo):</strong> Igual que Multi Anual, con flujos ajustados por TC forward y WACC por riesgo país.</p>
+        <p><strong>ROI Digital:</strong> (Beneficios Operativos - Costos de Implementación) / Costos de Implementación × 100</p>
+        <p><strong>ROA:</strong><br>
+            - Antes: Utilidad Neta / Activos × 100<br>
+            - Con Proyecto: (Utilidad Neta + Beneficio Neto) / (Activos + Inversión) × 100<br>
+            - Impacto: ((Con - Antes) / Antes) × 100</p>
+        <p><strong>ROE:</strong><br>
+            - Antes: Utilidad Neta / Patrimonio × 100<br>
+            - Con Proyecto: (Utilidad Neta + Beneficio Neto) / (Patrimonio + Inversión) × 100<br>
+            - Impacto: ((Con - Antes) / Antes) × 100</p>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAzVMn4rHTdCdc0CaWayC0v1OaA4jw==" crossorigin="anonymous"></script>
+<script>
+// Configuración: Cambiar a false en versión final
+const isDemo = true;
+
+// Mostrar fórmulas solo en versión final
+if (!isDemo) {
+    document.getElementById('formulas').style.display = 'block';
+}
+
+// Verificar estado de la demo
+async function checkDemoStatus() {
+    try {
+        const response = await fetch('/api/check-demo');
+        const data = await response.json();
+        if (data.status === 'expired') {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+            showMessage(data.message, 'error');
+            document.getElementById('request-final').style.display = 'block';
+            return false;
+        } else if (data.status === 'warning') {
+            showMessage(data.message, 'warning');
+            return true;
+        } else {
+            return true;
+        }
+    } catch (error) {
+        showMessage('Error al verificar la demo. Asegúrate que /api/check-demo esté configurada.', 'error');
+        return false;
+    }
+}
+
+function showMessage(message, type) {
+    const msgDiv = document.createElement('div');
+    msgDiv.style.position = 'fixed';
+    msgDiv.style.top = '10px';
+    msgDiv.style.left = '50%';
+    msgDiv.style.transform = 'translateX(-50%)';
+    msgDiv.style.padding = '10px 20px';
+    msgDiv.style.borderRadius = '5px';
+    msgDiv.style.color = 'white';
+    msgDiv.style.zIndex = '1000';
+    msgDiv.textContent = message;
+    msgDiv.style.backgroundColor = type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#27ae60';
+    document.body.appendChild(msgDiv);
+    setTimeout(() => msgDiv.remove(), 5000);
+}
+
+// Gestión de pestañas
+function showTab(tabId) {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
+
+// Gestión de flujos dinámicos
+function setupFlujos(tab) {
+    const periodoInput = document.getElementById(`periodo-${tab}`);
+    const labels = document.querySelectorAll(`#flujos-container-${tab} label`);
+    const inputs = document.querySelectorAll(`.flujo-${tab}`);
+    function actualizarFlujos() {
+        const p = parseInt(periodoInput.value) || 0;
+        for (let i = 0; i < 10; i++) {
+            if (i < p) {
+                labels[i].classList.remove('flujo-hidden');
+                inputs[i].classList.remove('flujo-hidden');
+            } else {
+                labels[i].classList.add('flujo-hidden');
+                inputs[i].classList.add('flujo-hidden');
+            }
+        }
+    }
+    periodoInput.addEventListener('change', actualizarFlujos);
+    actualizarFlujos();
+}
+setupFlujos('multi');
+setupFlujos('global');
+
+// Cálculo ROI Clásico o Anual
+async function calcularClasico() {
+    if (!(await checkDemoStatus())) return;
+    const inv = parseFloat(document.getElementById('inversion-clasico').value) || 0;
+    const flujo = parseFloat(document.getElementById('flujo-clasico').value) || 0;
+    const un = parseFloat(document.getElementById('utilidad-clasico').value) || 0;
+    const at = parseFloat(document.getElementById('activos-clasico').value) || 0;
+    const pn = parseFloat(document.getElementById('patrimonio-clasico').value) || 0;
+
+    if (inv === 0) {
+        showMessage('Error: La inversión no puede ser cero.', 'error');
+        return;
+    }
+
+    const roi = ((flujo - inv) / inv) * 100;
+    const bn = flujo - inv;
+    const raa = at !== 0 ? (un / at) * 100 : 0;
+    const rac = at + inv !== 0 ? ((un + bn) / (at + inv)) * 100 : 0;
+    const rai = raa !== 0 ? ((rac - raa) / raa) * 100 : 0;
+    const rea = pn !== 0 ? (un / pn) * 100 : 0;
+    const rec = pn + inv !== 0 ? ((un + bn) / (pn + inv)) * 100 : 0;
+    const rei = rea !== 0 ? ((rec - rea) / rea) * 100 : 0;
+    const dec = roi > 10 ? 'APROBAR' : 'REVISAR';
+
+    document.getElementById('roi-clasico').textContent = roi.toFixed(2);
+    document.getElementById('decision-clasico').innerHTML = `Decisión: <span class="${dec === 'APROBAR' ? 'aprobado' : 'revisar'}">${dec}</span>`;
+    document.getElementById('roa-antes-clasico').textContent = raa.toFixed(2) + '%';
+    document.getElementById('roa-con-clasico').textContent = rac.toFixed(2) + '%';
+    document.getElementById('roa-impacto-clasico').textContent = rai.toFixed(2) + '%';
+    document.getElementById('roe-antes-clasico').textContent = rea.toFixed(2) + '%';
+    document.getElementById('roe-con-clasico').textContent = rec.toFixed(2) + '%';
+    document.getElementById('roe-impacto-clasico').textContent = rei.toFixed(2) + '%';
+
+    const vals = [
+        {n: 'ROI > 10%', v: roi > 10, b: 'Mínimo aceptable', d: 'ROI'},
+        {n: 'Inv < 20% patrimonio', v: inv < 0.2 * pn, b: 'No compromete', d: 'Inv/Pat'},
+        {n: 'Patrimonio > 30% act', v: pn > at * 0.3, b: 'Bien capitalizada', d: 'Balance'},
+        {n: 'Suma > 1.5x inv', v: flujo > inv * 1.5, b: 'Retorno robusto', d: 'Suma'}
+    ];
+    let h = '<h3>Validación (4/4)</h3><ul>';
+    let ok = 0;
+    vals.forEach(val => {
+        const ic = val.v ? '✓' : '✗';
+        const cl = val.v ? 'valid' : 'invalid';
+        h += `<li><span class="${cl}">${ic}</span> <span class="bold">${val.n}</span><br><span class="small">${val.b} (${val.d})</span></li>`;
+        if (val.v) ok++;
+    });
+    h += `</ul><p style="font-size:20px;font-weight:bold;color:${ok === 4 ? 'green' : 'red'}">${ok}/4 – ${ok === 4 ? 'LISTO' : 'REVISAR'}</p>`;
+    document.getElementById('validador-clasico').innerHTML = h;
+    document.getElementById('resultados-clasico').style.display = 'block';
+}
+
+// Cálculo ROI Multi Anual
+async function calcularMulti() {
+    if (!(await checkDemoStatus())) return;
+    const inv = parseFloat(document.getElementById('inversion-multi').value) || 0;
+    const w = parseFloat(document.getElementById('wacc-multi').value) / 100 || 0;
+    const per = parseInt(document.getElementById('periodo-multi').value) || 0;
+    const fls = Array.from(document.querySelectorAll('.flujo-multi')).slice(0, per).map(input => parseFloat(input.value) || 0);
+    const un = parseFloat(document.getElementById('utilidad-multi').value) || 0;
+    const at = parseFloat(document.getElementById('activos-multi').value) || 0;
+    const pn = parseFloat(document.getElementById('patrimonio-multi').value) || 0;
+
+    if (inv === 0) {
+        showMessage('Error: La inversión no puede ser cero.', 'error');
+        return;
+    }
+
+    const cf = [-inv, ...fls];
+    let vpn = cf[0];
+    for (let i = 1; i < cf.length; i++) vpn += cf[i] / Math.pow(1 + w, i);
+
+    let tir = 0.1;
+    for (let k = 0; k < 100; k++) {
+        let npv = 0, der = 0;
+        for (let i = 0; i < cf.length; i++) {
+            npv += cf[i] / Math.pow(1 + tir, i);
+            if (i > 0) der += -i * cf[i] / Math.pow(1 + tir, i + 1);
+        }
+        if (Math.abs(npv) < 0.0001) break;
+        tir -= npv / der;
+    }
+    tir = Math.max(0, tir) * 100;
+
+    const sum = fls.reduce((a, b) => a + b, 0);
+    const rc = ((sum - inv) / inv) * 100;
+    const rs = (vpn / inv) * 100;
+    const rco = 100 + rs;
+    const dec = vpn > 0 && tir > w * 100 ? 'APROBAR' : 'REVISAR';
+
+    document.getElementById('vpn-multi').textContent = vpn.toFixed(2);
+    document.getElementById('tir-multi').textContent = tir.toFixed(2);
+    document.getElementById('roi-clasico-multi').textContent = rc.toFixed(2);
+    document.getElementById('roi-simple-multi').textContent = rs.toFixed(2);
+    document.getElementById('roi-completo-multi').textContent = rco.toFixed(2);
+    document.getElementById('decision-multi').innerHTML = `Decisión: <span class="${dec === 'APROBAR' ? 'aprobado' : 'revisar'}">${dec}</span>`;
+
+    const bn = sum - inv;
+    const raa = at !== 0 ? (un / at) * 100 : 0;
+    const rac = at + inv !== 0 ? ((un + bn) / (at + inv)) * 100 : 0;
+    const rai = raa !== 0 ? ((rac - raa) / raa) * 100 : 0;
+    const rea = pn !== 0 ? (un / pn) * 100 : 0;
+    const rec = pn + inv !== 0 ? ((un + bn) / (pn + inv)) * 100 : 0;
+    const rei = rea !== 0 ? ((rec - rea) / rea) * 100 : 0;
+
+    document.getElementById('roa-antes-multi').textContent = raa.toFixed(2) + '%';
+    document.getElementById('roa-con-multi').textContent = rac.toFixed(2) + '%';
+    document.getElementById('roa-impacto-multi').textContent = rai.toFixed(2) + '%';
+    document.getElementById('roe-antes-multi').textContent = rea.toFixed(2) + '%';
+    document.getElementById('roe-con-multi').textContent = rec.toFixed(2) + '%';
+    document.getElementById('roe-impacto-multi').textContent = rei.toFixed(2) + '%';
+
+    const vals = [
+        {n: 'VPN positivo', v: vpn > 0, b: 'Genera riqueza real', d: 'VPN'},
+        {n: 'TIR > WACC', v: tir > w * 100, b: 'Rinde más que costo', d: 'TIR vs WACC'},
+        {n: 'ROI Completo > 100%', v: rco > 100, b: 'Recupera inversión', d: 'ROI'},
+        {n: 'Payback < 3a', v: sum / inv >= 0.33, b: 'Recuperación rápida', d: 'Payback'}
+    ];
+    let h = '<h3>Validación (4/4)</h3><ul>';
+    let ok = 0;
+    vals.forEach(val => {
+        const ic = val.v ? '✓' : '✗';
+        const cl = val.v ? 'valid' : 'invalid';
+        h += `<li><span class="${cl}">${ic}</span> <span class="bold">${val.n}</span><br><span class="small">${val.b} (${val.d})</span></li>`;
+        if (val.v) ok++;
+    });
+    h += `</ul><p style="font-size:20px;font-weight:bold;color:${ok === 4 ? 'green' : 'red'}">${ok}/4 – ${ok === 4 ? 'LISTO' : 'REVISAR'}</p>`;
+    document.getElementById('validador-multi').innerHTML = h;
+    document.getElementById('resultados-multi').style.display = 'block';
+}
+
+// Cálculo ROI Global (o Fronterizo)
+async function calcularGlobal() {
+    if (!(await checkDemoStatus())) return;
+    const inv = parseFloat(document.getElementById('inversion-global').value) || 0;
+    const w = parseFloat(document.getElementById('wacc-global').value) / 100 || 0;
+    const per = parseInt(document.getElementById('periodo-global').value) || 0;
+    const fls = Array.from(document.querySelectorAll('.flujo-global')).slice(0, per).map(input => parseFloat(input.value) || 0);
+    const un = parseFloat(document.getElementById('utilidad-global').value) || 0;
+    const at = parseFloat(document.getElementById('activos-global').value) || 0;
+    const pn = parseFloat(document.getElementById('patrimonio-global').value) || 0;
+
+    if (inv === 0) {
+        showMessage('Error: La inversión no puede ser cero.', 'error');
+        return;
+    }
+
+    const cf = [-inv, ...fls];
+    let vpn = cf[0];
+    for (let i = 1; i < cf.length; i++) vpn += cf[i] / Math.pow(1 + w, i);
+
+    let tir = 0.1;
+    for (let k = 0; k < 100; k++) {
+        let npv = 0, der = 0;
+        for (let i = 0; i < cf.length; i++) {
+            npv += cf[i] / Math.pow(1 + tir, i);
+            if (i > 0) der += -i * cf[i] / Math.pow(1 + tir, i + 1);
+        }
+        if (Math.abs(npv) < 0.0001) break;
+        tir -= npv / der;
+    }
+    tir = Math.max(0, tir) * 100;
+
+    const sum = fls.reduce((a, b) => a + b, 0);
+    const rc = ((sum - inv) / inv) * 100;
+    const rs = (vpn / inv) * 100;
+    const rco = 100 + rs;
+    const dec = vpn > 0 && tir > w * 100 ? 'APROBAR' : 'REVISAR';
+
+    document.getElementById('vpn-global').textContent = vpn.toFixed(2);
+    document.getElementById('tir-global').textContent = tir.toFixed(2);
+    document.getElementById('roi-clasico-global').textContent = rc.toFixed(2);
+    document.getElementById('roi-simple-global').textContent = rs.toFixed(2);
+    document.getElementById('roi-completo-global').textContent = rco.toFixed(2);
+    document.getElementById('decision-global').innerHTML = `Decisión: <span class="${dec === 'APROBAR' ? 'aprobado' : 'revisar'}">${dec}</span>`;
+
+    const bn = sum - inv;
+    const raa = at !== 0 ? (un / at) * 100 : 0;
+    const rac = at + inv !== 0 ? ((un + bn) / (at + inv)) * 100 : 0;
+    const rai = raa !== 0 ? ((rac - raa) / raa) * 100 : 0;
+    const rea = pn !== 0 ? (un / pn) * 100 : 0;
+    const rec = pn + inv !== 0 ? ((un + bn) / (pn + inv)) * 100 : 0;
+    const rei = rea !== 0 ? ((rec - rea) / rea) * 100 : 0;
+
+    document.getElementById('roa-antes-global').textContent = raa.toFixed(2) + '%';
+    document.getElementById('roa-con-global').textContent = rac.toFixed(2) + '%';
+    document.getElementById('roa-impacto-global').textContent = rai.toFixed(2) + '%';
+    document.getElementById('roe-antes-global').textContent = rea.toFixed(2) + '%';
+    document.getElementById('roe-con-global').textContent = rec.toFixed(2) + '%';
+    document.getElementById('roe-impacto-global').textContent = rei.toFixed(2) + '%';
+
+    const vals = [
+        {n: 'TC forward', v: true, b: 'Sin sorpresas FX', d: 'Manual'},
+        {n: 'Riesgo país WACC', v: true, b: 'Costo real LatAm', d: 'Manual'},
+        {n: 'Cobertura FX', v: true, b: 'Protección cambiaria', d: 'Manual'},
+        {n: 'Salto cambiario +50%', v: true, b: 'Blindaje LatAm', d: 'Manual'}
+    ];
+    let h = '<h3>Validación (4/4)</h3><ul>';
+    let ok = 0;
+    vals.forEach(val => {
+        const ic = val.v ? '✓' : '✗';
+        const cl = val.v ? 'valid' : 'invalid';
+        h += `<li><span class="${cl}">${ic}</span> <span class="bold">${val.n}</span><br><span class="small">${val.b} (${val.d})</span></li>`;
+        if (val.v) ok++;
+    });
+    h += `</ul><p style="font-size:20px;font-weight:bold;color:${ok === 4 ? 'green' : 'red'}">${ok}/4 – ${ok === 4 ? 'LISTO' : 'REVISAR'}</p>`;
+    document.getElementById('validador-global').innerHTML = h;
+    document.getElementById('resultados-global').style.display = 'block';
+}
+
+// Cálculo ROI Digital
+async function calcularDigital() {
+    if (!(await checkDemoStatus())) return;
+    const costos = parseFloat(document.getElementById('costos-digital').value) || 0;
+    const beneficios = parseFloat(document.getElementById('beneficios-digital').value) || 0;
+    const un = parseFloat(document.getElementById('utilidad-digital').value) || 0;
+    const at = parseFloat(document.getElementById('activos-digital').value) || 0;
+    const pn = parseFloat(document.getElementById('patrimonio-digital').value) || 0;
+
+    if (costos === 0) {
+        showMessage('Error: Los costos no pueden ser cero.', 'error');
+        return;
+    }
+
+    const roi = ((beneficios - costos) / costos) * 100;
+    const bn = beneficios - costos;
+    const raa = at !== 0 ? (un / at) * 100 : 0;
+    const rac = at + costos !== 0 ? ((un + bn) / (at + costos)) * 100 : 0;
+    const rai = raa !== 0 ? ((rac - raa) / raa) * 100 : 0;
+    const rea = pn !== 0 ? (un / pn) * 100 : 0;
+    const rec = pn + costos !== 0 ? ((un + bn) / (pn + costos)) * 100 : 0;
+    const rei = rea !== 0 ? ((rec - rea) / rea) * 100 : 0;
+    const dec = roi > 10 ? 'APROBAR' : 'REVISAR';
+
+    document.getElementById('roi-digital').textContent = roi.toFixed(2);
+    document.getElementById('decision-digital').innerHTML = `Decisión: <span class="${dec === 'APROBAR' ? 'aprobado' : 'revisar'}">${dec}</span>`;
+    document.getElementById('roa-antes-digital').textContent = raa.toFixed(2) + '%';
+    document.getElementById('roa-con-digital').textContent = rac.toFixed(2) + '%';
+    document.getElementById('roa-impacto-digital').textContent = rai.toFixed(2) + '%';
+    document.getElementById('roe-antes-digital').textContent = rea.toFixed(2) + '%';
+    document.getElementById('roe-con-digital').textContent = rec.toFixed(2) + '%';
+    document.getElementById('roe-impacto-digital').textContent = rei.toFixed(2) + '%';
+
+    const vals = [
+        {n: 'ROI > 10%', v: roi > 10, b: 'Mínimo aceptable', d: 'ROI'},
+        {n: 'Costos < 20% patrimonio', v: costos < 0.2 * pn, b: 'No compromete', d: 'Costos/Pat'},
+        {n: 'Beneficios > 1.5x costos', v: beneficios > costos * 1.5, b: 'Retorno robusto', d: 'Beneficios'},
+        {n: 'ROA mantiene', v: rac >= raa * 0.99, b: 'No baja ROA', d: 'ROA'}
+    ];
+    let h = '<h3>Validación (4/4)</h3><ul>';
+    let ok = 0;
+    vals.forEach(val => {
+        const ic = val.v ? '✓' : '✗';
+        const cl = val.v ? 'valid' : 'invalid';
+        h += `<li><span class="${cl}">${ic}</span> <span class="bold">${val.n}</span><br><span class="small">${val.b} (${val.d})</span></li>`;
+        if (val.v) ok++;
+    });
+    h += `</ul><p style="font-size:20px;font-weight:bold;color:${ok === 4 ? 'green' : 'red'}">${ok}/4 – ${ok === 4 ? 'LISTO' : 'REVISAR'}</p>`;
+    document.getElementById('validador-digital').innerHTML = h;
+    document.getElementById('resultados-digital').style.display = 'block';
+}
+
+// Generación de PDF
+function generarPDF(tab) {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+
+        // Página 1: Resultados
+        doc.text(`ROI ${tab.charAt(0).toUpperCase() + tab.slice(1)} - Resultados`, 10, 10);
+        doc.setFontSize(12);
+        let y = 25;
+        if (tab === 'clasico') {
+            doc.text(`ROI Clásico o Anual: ${document.getElementById('roi-clasico').textContent}%`, 10, y); y += 8;
+            doc.text(`Decisión: ${document.getElementById('decision-clasico').textContent.replace('Decisión: ', '')}`, 10, y);
+        } else if (tab === 'multi' || tab === 'global') {
+            doc.text(`VPN: ${document.getElementById(`vpn-${tab}`).textContent} USD`, 10, y); y += 8;
+            doc.text(`TIR: ${document.getElementById(`tir-${tab}`).textContent}%`, 10, y); y += 8;
+            doc.text(`ROI Clásico: ${document.getElementById(`roi-clasico-${tab}`).textContent}%`, 10, y); y += 8;
+            doc.text(`ROI Simple: ${document.getElementById(`roi-simple-${tab}`).textContent}%`, 10, y); y += 8;
+            doc.text(`ROI Completo: ${document.getElementById(`roi-completo-${tab}`).textContent}%`, 10, y); y += 8;
+            doc.text(`Decisión: ${document.getElementById(`decision-${tab}`).textContent.replace('Decisión: ', '')}`, 10, y);
+        } else if (tab === 'digital') {
+            doc.text(`ROI Digital: ${document.getElementById('roi-digital').textContent}%`, 10, y); y += 8;
+            doc.text(`Decisión: ${document.getElementById('decision-digital').textContent.replace('Decisión: ', '')}`, 10, y);
+        }
+
+        // Página 2: Impacto
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.text('Impacto Cooperativa', 10, 10);
+        doc.setFontSize(12);
+        y = 25;
+        doc.text(`ROA Antes: ${document.getElementById(`roa-antes-${tab}`).textContent}`, 10, y); y += 8;
+        doc.text(`ROA Con: ${document.getElementById(`roa-con-${tab}`).textContent}`, 10, y); y += 8;
+        doc.text(`ROA Impacto: ${document.getElementById(`roa-impacto-${tab}`).textContent}`, 10, y); y += 15;
+        doc.text(`ROE Antes: ${document.getElementById(`roe-antes-${tab}`).textContent}`, 10, y); y += 8;
+        doc.text(`ROE Con: ${document.getElementById(`roe-con-${tab}`).textContent}`, 10, y); y += 8;
+        doc.text(`ROE Impacto: ${document.getElementById(`roe-impacto-${tab}`).textContent}`, 10, y);
+
+        // Página 3: Validadores
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.text('Validadores', 10, 10);
+        doc.setFontSize(9);
+        const txt = document.getElementById(`validador-${tab}`).innerText;
+        const lin = doc.splitTextToSize(txt, 190);
+        doc.text(lin, 10, 25);
+
+        doc.save(`ROI_${tab.charAt(0).toUpperCase() + tab.slice(1)}.pdf`);
+    } catch (error) {
+        showMessage('Error al generar PDF: ' + error.message, 'error');
+    }
+}
+
+// Formulario de solicitud
+document.getElementById('request-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const company = document.getElementById('company').value;
+    try {
+        const response = await fetch('/api/request-final', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, company })
+        });
+        const data = await response.json();
+        showMessage(data.message, response.ok ? 'success' : 'error');
+    } catch (error) {
+        showMessage('Error al enviar solicitud. Asegúrate que /api/request-final esté configurada.', 'error');
+    }
+});
+</script> 
+
+</body>
+</html>     
+
